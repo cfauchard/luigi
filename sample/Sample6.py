@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Sample5: Sample with two tasks, dependance and csv read
+# Sample6: Sample with three tasks, two dependancies and store read
 #
 
 import luigi
 import fbd_tools.etl.io.store
-import pandas
 import os.path
+import pandas
 
 
 class StoreTarget(luigi.Target):
@@ -15,6 +15,10 @@ class StoreTarget(luigi.Target):
         self.store = store
         self.source = source
         self.state = state
+
+    def read(self):
+        print("deserialize object...")
+        return self.store.get(self.source, self.state)
 
     def write(self, object_to_serialize):
         print("serialize object...")
@@ -33,29 +37,48 @@ class StoreTarget(luigi.Target):
         else:
             return False
 
-        
-class Task_001(luigi.ExternalTask):
-    
-    def output(self):
-        return luigi.LocalTarget('Sample5.csv')
 
-        
-class Task_002(luigi.Task):
+class Task_001(luigi.ExternalTask):
     store = luigi.Parameter()
-    
+
     def requires(self):
-        return Task_001()
+        return None
+
+    def output(self):
+        return StoreTarget(self.store, "hello", "001")
+
+
+class Task_002(luigi.ExternalTask):
+    store = luigi.Parameter()
+
+    def requires(self):
+        return None
 
     def output(self):
         return StoreTarget(self.store, "hello", "002")
 
-    def run(self):
-        with self.input().open() as fd_input:
-            dsobj = pandas.read_csv(fd_input)
-        fd_input.close()
 
-        print("running task Task_002...")
-        self.output().write(dsobj)
+class Task_003(luigi.Task):
+    store = luigi.Parameter()
+
+    def requires(self):
+        return {
+            'Task_001': Task_001(store=self.store),
+            'Task_002': Task_002(store=self.store)
+        }
+
+    def output(self):
+        return StoreTarget(self.store, "output", "001")
+
+    def run(self):
+        df_task1 = self.input()['Task_001'].read()
+        df_task2 = self.input()['Task_002'].read()
+
+        print("running task Task_003...")
+        print("concat dataframes...")
+
+        df_task3 = pandas.concat([df_task1, df_task2])
+        self.output().write(df_task3)
 
 
 if __name__ == '__main__':
@@ -63,9 +86,9 @@ if __name__ == '__main__':
     print("creating fbd_tools.etl.io.store.Store object in directory: %s" %
           (base_path))
     storeobj = fbd_tools.etl.io.store.Store(base_path)
-    
+
     luigi.build(
         [
-            Task_002(store=storeobj)
+            Task_003(store=storeobj)
         ],
         local_scheduler=True)

@@ -88,8 +88,7 @@ if __name__ == '__main__':
     print("creating fbd_tools.etl.io.store.Store object in directory: %s" %
           (base_path))
     storeobj = fbd_tools.etl.io.store.Store(base_path)
-    input_task1 = pandas.Series([1, 3, 45, 67, 4])
-    
+
     luigi.build(
         [
             Task_002(store=storeobj)

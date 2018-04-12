@@ -7,6 +7,6 @@ MyStore =  fbd_tools.etl.io.store.Store('/tmp/store4')
 
 print(MyStore)
 
-object = MyStore.get('hello' , '018')
+object = MyStore.get('output' , '001')
 
 print(object)
