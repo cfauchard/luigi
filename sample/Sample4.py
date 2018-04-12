@@ -88,7 +88,6 @@ if __name__ == '__main__':
     print("creating fbd_tools.etl.io.store.Store object in directory: %s" %
           (base_path))
     storeobj = fbd_tools.etl.io.store.Store(base_path)
-
     luigi.build(
         [
             Task_002(store=storeobj)
