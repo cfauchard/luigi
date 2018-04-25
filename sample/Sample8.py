@@ -11,6 +11,7 @@ import fbd_tools.etl.io.store
 import os.path
 import pandas
 import time
+import os
 
 
 class StoreTarget(luigi.Target):
@@ -51,11 +52,11 @@ class Task_001(luigi.Task):
         return StoreTarget(self.store, "hello1", "001")
 
     def run(self):
-        print("running task Task_001...")
+        print("%d: %s" % (os.getpid(), "running task Task_001..."))
         for i in range(0,10):
-            print("Task_001 alive")
+            print("%d: %s" % (os.getpid(), "Task_001 alive"))
             time.sleep(1)
-        print("end task Task_001")
+        print("%d:%s" % (os.getpid(), "end task Task_001"))
 
 
 class Task_002(luigi.Task):
@@ -70,11 +71,11 @@ class Task_002(luigi.Task):
         return StoreTarget(self.store, "hello1", "002")
 
     def run(self):
-        print("running task Task_002...")
+        print("%d:%s" % (os.getpid(), " running task Task_002..."))
         for i in range(0,5):
-            print("Task_002 alive")
+            print("%d:%s" % (os.getpid(), "Task_002 alive"))
             time.sleep(1)
-        print("end task Task_002")
+        print("%d:%s" % (os.getpid(), " end task Task_002"))
         
 
 class Task_003(luigi.Task):
