@@ -12,6 +12,16 @@ import os.path
 import pandas
 import time
 import os
+import logging
+
+
+def decorate(f):
+    def wrapper(*args, **kwargs):
+        arglist = list(args)
+        instance = args[0]
+        instance.logger.info('toto')
+        f(*args, **kwargs)
+    return wrapper
 
 
 class StoreTarget(luigi.Target):
@@ -28,29 +38,20 @@ class StoreTarget(luigi.Target):
         print("serialize object...")
         self.store.set(self.source, self.state, object_to_serialize)
 
-    #
-    # Better to implement as a Store object method
-    #
     def exists(self):
-        if os.path.exists(
-                os.path.join(
-                    self.store.base_path,
-                    self.source,
-                    self.state)):
-            return True
-        else:
-            return False
-
+        return self.store.exists(self.source, self.state)
 
 class Task_001(luigi.Task):
     store = luigi.Parameter()
+    logger = luigi.Parameter()
 
     def requires(self):
         return None
 
     def output(self):
-        return StoreTarget(self.store, "hello1", "001")
+        return StoreTarget(self.store, "hello", "003")
 
+    @decorate
     def run(self):
         print("%d: %s" % (os.getpid(), "running task Task_001..."))
         for i in range(0,10):
@@ -61,6 +62,7 @@ class Task_001(luigi.Task):
 
 class Task_002(luigi.Task):
     store = luigi.Parameter()
+    logger = luigi.Parameter()
     source = "hello"
     state = "002"
 
@@ -68,8 +70,9 @@ class Task_002(luigi.Task):
         return None
 
     def output(self):
-        return StoreTarget(self.store, "hello1", "002")
+        return StoreTarget(self.store, "hello", "004")
 
+    @decorate
     def run(self):
         print("%d:%s" % (os.getpid(), " running task Task_002..."))
         for i in range(0,5):
@@ -80,15 +83,16 @@ class Task_002(luigi.Task):
 
 class Task_003(luigi.Task):
     store = luigi.Parameter()
-
+    logger = luigi.Parameter()
+    
     def requires(self):
         return {
-            'Task_001': Task_001(store=self.store),
-            'Task_002': Task_002(store=self.store)
+            'Task_001': Task_001(store=self.store, logger=self.logger),
+            'Task_002': Task_002(store=self.store, logger=self.logger)
         }
 
     def output(self):
-        return StoreTarget(self.store, "output", "002")
+        return StoreTarget(self.store, "output", "004")
 
     def run(self):
         df_task1 = self.input()['Task_001'].read()
@@ -110,10 +114,17 @@ if __name__ == '__main__':
     print("creating fbd_tools.etl.io.store.Store object in directory: %s" %
           (base_path))
     storeobj = fbd_tools.etl.io.store.Store(base_path)
+    logger=logging.getLogger("Sample8")
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    handler = logging.FileHandler('Sample8.log')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+    logger.info('ouverture log')
 
     luigi.build(
         [
-            Task_003(store=storeobj)
+            Task_003(store=storeobj, logger=logger)
         ],
         local_scheduler=True,
         workers=2
